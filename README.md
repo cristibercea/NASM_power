@@ -1,2 +1,2 @@
 # NASM_power
-First semester university mini-apps made in Assembly
+- Some small programs I've made in Assembly lang in my first semester at uni
