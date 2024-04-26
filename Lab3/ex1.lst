@@ -1,0 +1,75 @@
+     1                                  bits 32 ; assembling for the 32 bits architecture
+     2                                  
+     3                                  ; declare the EntryPoint (a label defining the very first instruction of the program)
+     4                                  global start        
+     5                                  
+     6                                  ; declare external functions needed by our program
+     7                                  extern exit               ; tell nasm that exit exists even if we won't be defining it
+     8                                  import exit msvcrt.dll    ; exit is a function that ends the calling process. It is defined in msvcrt.dll
+     9                                                            ; msvcrt.dll contains exit, printf and all the other important C-runtime specific functions
+    10                                  
+    11                                  ; our data is declared here (the variables needed by our program)
+    12                                  segment data use32 class=data
+    13                                      ; e=a/(b-7) +c*d + e
+    14 00000000 0A                          a db 10
+    15 00000001 0800                        b dw 8
+    16 00000003 0C00                        c dw 12
+    17 00000005 0100                        d dw 1
+    18 00000007 FFFFFFFFFFFFFFFF            e dq -1
+    19                                      ; cu semn
+    20 0000000F 0000                        aux dw 0 ; aux pentru a salva rez intermediar din ax
+    21                                  
+    22                                  ; our code starts here
+    23                                  segment code use32 class=code
+    24                                      start:
+    25                                          ; b-7
+    26 00000000 668B1D[01000000]                mov bx, [b]
+    27 00000007 6683EB07                        sub bx, 7 ; bx = b-7
+    28                                          
+    29                                          ;a/(b-7)
+    30                                          ;byte / bx
+    31                                          ; a de la byte la doublewordul dx:ax
+    32 0000000B 660FBE05[00000000]              movsx ax, byte[a]
+    33 00000013 6699                            CWD ; ax-> dx:ax ; adica in dx val bitului de semn
+    34 00000015 66F7FB                          idiv bx ; dx:ax/bx = ax cat si dx rest, ignoram restul
+    35                                          ; ax = a/(b-7)
+    36 00000018 66A3[0F000000]                  mov word[aux], ax ; aux = a/(b-7)
+    37                                          
+    38                                          ;c*d
+    39 0000001E 66A1[03000000]                  mov ax, [c]
+    40 00000024 66F72D[05000000]                imul word[d] ; c*d = dx:ax
+    41                                          
+    42                                          ;; e=a/(b-7) +c*d + e
+    43                                          ;      aux   + dx:ax  + e
+    44                                          ;       word  + dd     +quad
+    45                                          
+    46                                          ; dx:ax -> reg compact ebx
+    47 0000002B 6652                            push dx
+    48 0000002D 6650                            push ax
+    49 0000002F 5B                              pop ebx
+    50                                          
+    51                                           ;; e=a/(b-7) +c*d + e
+    52                                          ;      aux   + ebx  + e
+    53                                          ;       word  + dd     +quad
+    54                                          ; word aux sa devina doublwword compact
+    55                                          
+    56 00000030 0FBF0D[0F000000]                movsx ecx, word[aux] ; ecx = a/(b-7)
+    57 00000037 01D9                            add ecx, ebx ; ecx = a/(b-7) +c*d
+    58                                          
+    59                                          ;; e=a/(b-7) +c*d + e
+    60                                                        ; ecx  + q
+    61                                                        ; ecx -> edx:eax 
+    62                                                        ; cdq
+    63 00000039 89C8                            mov eax, ecx
+    64 0000003B 99                              cdq ; edx:eax = a/(b-7) +c*d
+    65                                          
+    66                                          ; adunam la edx:eax  cele 2 jumatati ale quadwordului 
+    67 0000003C 0305[07000000]                  add eax, dword[e+0]
+    68 00000042 1315[0B000000]                  adc edx, dword[e+4]
+    69                                          ; rez final in edx:eax 
+    70                                          
+    71                                          
+    72                                          
+    73                                          ; exit(0)
+    74 00000048 6A00                            push    dword 0      ; push the parameter for exit onto the stack
+    75 0000004A FF15[00000000]                  call    [exit]       ; call exit to terminate the program

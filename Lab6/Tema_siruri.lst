@@ -1,0 +1,52 @@
+     1                                  bits 32 ; assembling for the 32 bits architecture
+     2                                  
+     3                                  ; declare the EntryPoint (a label defining the very first instruction of the program)
+     4                                  global start        
+     5                                  
+     6                                  ; declare external functions needed by our program
+     7                                  extern exit               ; tell nasm that exit exists even if we won't be defining it
+     8                                  import exit msvcrt.dll    ; exit is a function that ends the calling process. It is defined in msvcrt.dll
+     9                                                            ; msvcrt.dll contains exit, printf and all the other important C-runtime specific functions
+    10                                  
+    11                                  ; our data is declared here (the variables needed by our program)
+    12                                  segment data use32 class=data
+    13                                      ; ...
+    14                                          ;Se dau doua siruri de octeti S1 si S2. Sa se construiasca sirul D prin concatenarea elementelor din sirul S1 ;1uate de la stanga spre dreapta si a elementelor din sirul S2 luate de la dreapta spre stanga.
+    15                                      ;Exemplu:
+    16                                              ;S1: 1, 2, 3, 4
+    17                                              ;S2: 5, 6, 7
+    18                                              ;D: 1, 2, 3, 4, 7, 6, 5
+    19 00000000 01020304                    s1 db 1, 2, 3, 4
+    20                                      ls1 equ $-s1
+    21 00000004 050607                      s2 db 5, 6, 7
+    22                                      ls2 equ $-s2
+    23 00000007 <res 00000007>              rezultat resb 7
+    24                                  
+    25                                  ; our code starts here
+    26                                  segment code use32 class=code
+    27                                      start:
+    28                                          ; ...
+    29 00000000 B904000000                      mov ecx, ls1 ;ecx=ls1
+    30 00000005 BF00000000                      mov edi, 0 ;pregatire parcurgere directa sir s1
+    31 0000000A BE00000000                      mov esi, 0 ; pregatire parcurgere directa sir rezultat
+    32                                          
+    33                                          repeta: ;parcurgerea sirului s1 (st->dr)  
+    34 0000000F 8A87[00000000]                      mov al, [s1+edi] ;al=s1[edi]
+    35 00000015 8886[07000000]                      mov [rezultat+esi], al ;rezultat[esi]=al
+    36 0000001B 83C601                              add esi, 1
+    37 0000001E 83C701                              add edi, 1
+    38 00000021 E2EC                            loop repeta
+    39                                          
+    40 00000023 B903000000                      mov ecx, ls2 ;ecx=ls2
+    41 00000028 BF02000000                      mov edi, ls2-1 ;pregatire parcurgere inversa sir s2
+    42                                          
+    43                                          repeta1: ;parcurgerea sirului s2 (dr->st)
+    44 0000002D 8A87[04000000]                      mov al, [s2+edi] ;al=s2[edi]
+    45 00000033 8886[07000000]                      mov [rezultat+esi], al ;rezultat[esi]=al
+    46 00000039 83C601                              add esi, 1
+    47 0000003C 83EF01                              sub edi, 1
+    48 0000003F E2EC                            loop repeta1
+    49                                          
+    50                                          ; exit(0)
+    51 00000041 6A00                            push    dword 0      ; push the parameter for exit onto the stack
+    52 00000043 FF15[00000000]                  call    [exit]       ; call exit to terminate the program

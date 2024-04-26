@@ -1,0 +1,88 @@
+     1                                  bits 32 ; assembling for the 32 bits architecture
+     2                                  
+     3                                  ; declare the EntryPoint (a label defining the very first instruction of the program)
+     4                                  global start        
+     5                                  
+     6                                  ; declare external functions needed by our program
+     7                                  extern exit               ; tell nasm that exit exists even if we won't be defining it
+     8                                  import exit msvcrt.dll    ; exit is a function that ends the calling process. It is defined in msvcrt.dll
+     9                                                            ; msvcrt.dll contains exit, printf and all the other important C-runtime specific functions
+    10                                  
+    11                                  ; our data is declared here (the variables needed by our program)
+    12                                  segment data use32 class=data
+    13                                      ; ...
+    14                                      
+    15                                          ;Se da un sir de dublucuvinte. Sa se obtina sirul format din octetii inferiori ai
+    16                                      ;cuvintelor superioare din elementele sirului de dublucuvinte care sunt palindrom in scrierea in baza 10.
+    17                                              ;Exemplu:
+    18                                              
+    19                                          ;Se da sirul de dublucuvinte:
+    20                                          ;s DD 12345678h, 1A2C3C4Dh, 98FCDC76h
+    21                                          
+    22                                          ;Sa se obtina sirul
+    23                                          ;d DB 2Ch, FCh
+    24                                          
+    25 00000000 785634124D3C2C1A76-         s dd 12345678h, 1A2C3C4Dh, 98FCDC76h
+    25 00000009 DCFC98             
+    26                                      ls equ ($-s)/4
+    27 0000000C <res 00000003>              d resb ls
+    28 0000000F <res 00000001>              aux resb 1
+    29                                      
+    30                                  ; Nota: Rezolvare pentru numere unsigned
+    31                                  ; our code starts here
+    32                                  segment code use32 class=code
+    33                                      start:
+    34                                          ; ...
+    35 00000000 BE[02000000]                    mov esi, s+2
+    36 00000005 BF[0C000000]                    mov edi, d
+    37 0000000A B903000000                      mov ecx, ls
+    38                                          repeta:
+    39 0000000F FC                                  cld ;pregateste load-ul din sir (DF=0, directie st->dr) 
+    40 00000010 AC                                  lodsb ;incarca in al octetii inferiori ai cuvintelor superioare din elementele sirului, esi+=1
+    41 00000011 A2[0F000000]                        mov byte[aux], al ;salveaza intr-un auxiliar valoarea octetului 
+    42 00000016 660FB6C0                            movzx ax, al ;ax= 00_al
+    43                                              
+    44 0000001A 6683F80A                            cmp ax, 10
+    45 0000001E 7232                                    jb numarSub10 ;daca numarul are doar o cifra, este palindrom 
+    46                                                  
+    47 00000020 6683F864                            cmp ax, 100
+    48 00000024 721B                                    jb numarSub100 ;daca numarul are doua cifre, se sare la eticheta
+    49                                              
+    50                                              ;daca numarul are 3 cifre se executa codul de aici
+    51 00000026 B364                                mov bl, 100 
+    52 00000028 F6F3                                div bl ;al= a 3-a cifra a numarului din octetul selectat = cifra sutelor 
+    53 0000002A 88C2                                mov dl, al ;dl= cifra sutelor
+    54 0000002C 660FB6C4                            movzx ax, ah ;ax=ultimele doua cifre ale numarului
+    55 00000030 B30A                                mov bl, 10
+    56 00000032 F6F3                                div bl ;ah= ultima cifra a numarului din octetul initial (adica cifra unitatilor)
+    57                                              
+    58 00000034 38E2                                cmp dl, ah
+    59 00000036 7521                                    jne final_loop ;daca dl!=ah, numarul nu e palindrom
+    60 00000038 A0[0F000000]                        mov al, byte[aux] ;numarul e palindrom, se preia din aux si se pune in ax
+    61 0000003D FC                                  cld ;DF=0
+    62 0000003E AA                                  stosb ;se salveaza ax la adresa stocata in edi (sirul d); edi+=1
+    63 0000003F EB18                                jmp final_loop
+    64                                              
+    65                                              numarSub100:
+    66 00000041 B30A                                    mov bl, 10
+    67 00000043 F6F3                                    div bl
+    68 00000045 38E0                                    cmp al, ah ;in al este cifra zecilor, iar in ah e cifra unitatilor, ale numarului din octetul selectat 
+    69 00000047 7510                                        jne final_loop ;nr nu este un palindrom 
+    70 00000049 A0[0F000000]                            mov al, byte[aux] ;numarul e palindrom, se preia din aux si se pune in ax
+    71 0000004E FC                                      cld ;DF=0
+    72 0000004F AA                                      stosb ;se salveaza ax la adresa stocata in edi (sirul d); edi+=1
+    73 00000050 EB07                                    jmp final_loop
+    74                                              
+    75                                              numarSub10:
+    76 00000052 A0[0F000000]                            mov al, byte[aux] ;numarul e palindrom, se preia din aux si se pune in ax
+    77 00000057 FC                                      cld ;DF=0
+    78 00000058 AA                                      stosb ;se salveaza ax la adresa stocata in edi (sirul d); edi+=1
+    79                                                  
+    80                                              final_loop:
+    81 00000059 83C603                                  add esi,3 ;se trece la urmatorul dublucuvant din sirul s
+    82 0000005C C605[0F000000]00                        mov byte[aux], 0 ;aux=0
+    83 00000063 E2AA                            loop repeta
+    84                                          
+    85                                          ; exit(0)
+    86 00000065 6A00                            push    dword 0      ; push the parameter for exit onto the stack
+    87 00000067 FF15[00000000]                  call    [exit]       ; call exit to terminate the program

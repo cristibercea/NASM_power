@@ -1,0 +1,2 @@
+ Cele doua numere citite sunt a= 10 si b=13
+ Rezultatul operatiei 10 / 13 este: catul = 0 si restul = 10

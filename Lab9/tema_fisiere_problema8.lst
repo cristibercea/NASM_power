@@ -1,0 +1,133 @@
+     1                                  bits 32 ; assembling for the 32 bits architecture
+     2                                  
+     3                                  ; declare the EntryPoint (a label defining the very first instruction of the program)
+     4                                  global start        
+     5                                  
+     6                                  ; declare external functions needed by our program
+     7                                  extern exit,printf,fread,fopen,fclose
+     8                                  import printf msvcrt.dll
+     9                                  import fread msvcrt.dll
+    10                                  import fopen msvcrt.dll
+    11                                  import fclose msvcrt.dll
+    12                                  import exit msvcrt.dll    ; exit is a function that ends the calling process. It is defined in msvcrt.dll
+    13                                                            ; msvcrt.dll contains exit, printf and all the other important C-runtime specific functions
+    14                                  
+    15                                  ; our data is declared here (the variables needed by our program)
+    16                                  segment data use32 class=data
+    17                                      ; ...
+    18                                      len equ 250                         ;se vor citi 250 de caractere din fisier
+    19 00000000 00<rept>                    text times (len+1) db 0             ;se defineste in memorie string-ul care va retine continutul fisierului
+    20 000000FB 00<rept>                    letter_frequency times 26 db 0      ;26 litere in alfabetul englez care "apar de zero ori" pana la executia codului
+    21 00000115 00                          max db 0                            ;nr max de aparitii
+    22 00000116 <res 00000004>              aux resd 1                          ;aici se salveaza ecx in ultimul loop (printf modifica ecx, deci  valoarea sa initiala trebuie salvata pentru a nu fi afectat loop-ul)
+    23                                      
+    24 0000011A 646174612E74787400-         fin dd 'data.txt',0                         ;numele fisierului
+    24 00000123 000000             
+    25 00000126 FFFFFFFF                    descriptor dd -1                            ;descriptorul fisierului data.txt
+    26 0000012A 7200000000000000            open_format dd 'r',0                        ;deschidem fisierul pentru read
+    27                                      
+    28 00000132 4C6974657261202225-         format db 'Litera "%c" apare de %d ori in fisier!',13,10,0        ;formatul pentru afisare
+    28 0000013B 632220617061726520-
+    28 00000144 6465202564206F7269-
+    28 0000014D 20696E206669736965-
+    28 00000156 72210D0A00         
+    29                                  
+    30                                  ;Se da un fisier text. Sa se citeasca continutul fisierului, sa se determine litera mare (uppercase) cu cea mai mare ;frecventa si sa se afiseze acea litera, impreuna cu frecventa acesteia. Numele fisierului text es
+    31                                  ; our code starts here
+    32                                  segment code use32 class=code
+    33                                      start:
+    34                                          ; ...
+    35                                          ;deschidere fisier pentru read
+    36 00000000 68[2A010000]                    push dword open_format
+    37 00000005 68[1A010000]                    push dword fin
+    38 0000000A FF15[00000000]                  call [fopen]
+    39 00000010 83C408                          add esp, 4*2
+    40 00000013 83F800                          cmp eax, 0             ;eax==0: daca accesarea fisierului a esuat
+    41 00000016 0F84B9000000                        je final           ;se sare la finalul programului
+    42 0000001C A3[26010000]                    mov [descriptor], eax  ;altfel se salveaza descriptorul fisierului deschis pt read
+    43                                          
+    44                                          ;citire continut fisier
+    45 00000021 FF35[26010000]                  push dword [descriptor]
+    46 00000027 68FA000000                      push dword len
+    47 0000002C 6A01                            push dword 1
+    48 0000002E 68[00000000]                    push dword text
+    49 00000033 FF15[00000000]                  call [fread]
+    50 00000039 83C410                          add esp, 4*4
+    51                                          
+    52                                          ;daca nu s-a citit niciun caracter din fisier, se sare la final
+    53 0000003C A1[00000000]                    mov eax, [text]
+    54 00000041 83F800                          cmp eax, 0
+    55 00000044 0F848B000000                    je final
+    56                                          
+    57                                          ;pregatire parcurgere sir text
+    58 0000004A B9FA000000                      mov ecx, len
+    59 0000004F BE[00000000]                    mov esi, text ;directie: s->d
+    60 00000054 FC                              cld           ;directie: s->d
+    61                                          do:      ;parcurgere sir text si crearea sirului letter_frequency
+    62 00000055 AC                                  lodsb     ;se incarca in al un caracter din sirul "text"
+    63 00000056 3C41                                cmp al,'A'
+    64 00000058 7217                                    jb continue
+    65 0000005A 3C5A                                cmp al,'Z'
+    66 0000005C 7713                                    ja continue
+    67                                              
+    68                                              ;daca caracterul din al este intre A si Z, atunci ii va creste frecventa
+    69 0000005E 2C41                                sub al, 'A'                    ;al = "litera_mare-'A'" (numarul "litera_mare-'A'" e in multimea {0,1,...,25})
+    70 00000060 0FB6D0                              movzx edx, al                  ;edx = al
+    71 00000063 8A9A[FB000000]                      mov bl, byte [letter_frequency+edx] ;bl = letter_frequency[edx]
+    72 00000069 FEC3                                inc bl                              ;bl++
+    73 0000006B 889A[FB000000]                      mov [letter_frequency+edx], bl      ;letter_frequency[edx] = bl
+    74                                              continue:
+    75 00000071 E2E2                            loop do
+    76                                          
+    77                                          ;pregatire parcurgere letter_frequency
+    78 00000073 B91A000000                      mov ecx, 26
+    79 00000078 BE[FB000000]                    mov esi, letter_frequency ;directie: s->d
+    80 0000007D FC                              cld                       ;directie: s->d
+    81                                          do2:      ;parcurgere letter_frequency pentru a afla maximul de aparitii
+    82 0000007E AC                                  lodsb ;se incarca in al un numar din sirul "letter_frequency"
+    83 0000007F 3A05[15010000]                      cmp al, [max]
+    84 00000085 7605                                    jbe continue2
+    85                                              ;al>max
+    86 00000087 A2[15010000]                        mov [max],al     ;max=al
+    87                                              continue2: 
+    88 0000008C E2F0                            loop do2
+    89                                          
+    90                                          ;pregatire parcurgere letter_frequency
+    91 0000008E B91A000000                      mov ecx, 26 
+    92 00000093 BF00000000                      mov edi, 0
+    93 00000098 BE[FB000000]                    mov esi, letter_frequency ;directie: s->d
+    94 0000009D FC                              cld                       ;directie: s->d
+    95                                          do3:      ;parcurgere letter_frequency pentru a printa litera cu nr max de aparitii
+    96 0000009E AC                                  lodsb
+    97 0000009F 3A05[15010000]                      cmp al, [max]
+    98 000000A5 752B                                    jne continue3
+    99                                              
+   100                                              ;pregatirea termenilor de afisat
+   101 000000A7 B041                                mov al, 'A'
+   102 000000A9 0FB6C0                              movzx eax, al
+   103 000000AC 01F8                                add eax, edi
+   104 000000AE 8A15[15010000]                      mov dl, [max]
+   105 000000B4 0FB6D2                              movzx edx, dl
+   106 000000B7 890D[16010000]                      mov [aux], ecx
+   107                                              
+   108                                              ;printarea literei si a numarului de aparitii
+   109 000000BD 52                                  push dword edx
+   110 000000BE 50                                  push dword eax
+   111 000000BF 68[32010000]                        push dword format
+   112 000000C4 FF15[00000000]                      call [printf]
+   113 000000CA 83C60C                              add esi, 4*3
+   114                                              
+   115 000000CD B901000000                          mov ecx, 1 ;am gasit litera cu nr max de aparitii, deci vom iesi din loop
+   116                                              continue3: 
+   117 000000D2 47                                  inc edi
+   118 000000D3 E2C9                            loop do3
+   119                                          
+   120                                          final:
+   121                                          ;se inchide fisierul
+   122 000000D5 FF35[26010000]                  push dword [descriptor]
+   123 000000DB FF15[00000000]                  call [fclose]
+   124 000000E1 83C404                          add esp, 4
+   125                                          
+   126                                          ; exit(0)
+   127 000000E4 6A00                            push    dword 0      ; push the parameter for exit onto the stack
+   128 000000E6 FF15[00000000]                  call    [exit]       ; call exit to terminate the program

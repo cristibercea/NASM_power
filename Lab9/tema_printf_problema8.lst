@@ -1,0 +1,90 @@
+     1                                  bits 32 ; assembling for the 32 bits architecture
+     2                                  
+     3                                  ; declare the EntryPoint (a label defining the very first instruction of the program)
+     4                                  global start        
+     5                                  
+     6                                  ; declare external functions needed by our program
+     7                                  extern exit,printf,scanf
+     8                                  import printf msvcrt.dll
+     9                                  import scanf msvcrt.dll
+    10                                  import exit msvcrt.dll    ; exit is a function that ends the calling process. It is defined in msvcrt.dll
+    11                                                            ; msvcrt.dll contains exit, printf and all the other important C-runtime specific functions
+    12                                  
+    13                                  ; our data is declared here (the variables needed by our program)
+    14                                  segment data use32 class=data
+    15                                      ; ...
+    16 00000000 18020000                    a dd 536                ;variabila a, definita in segmentul de date
+    17 00000004 0000                        b dw 0                  ;variabila b, citita de la tastatura
+    18 00000006 00000000                    result dd 0             ;variabila care va contine rezultatul final
+    19                                      
+    20 0000000A 5365206461206E756D-         mesajcitire db 'Se da numarul a=%d. Introduceti numarul: b=',0        ;declararea unui mesaj pentru citire
+    20 00000013 6172756C20613D2564-
+    20 0000001C 2E20496E74726F6475-
+    20 00000025 63657469206E756D61-
+    20 0000002E 72756C3A20623D00   
+    21 00000036 256400                      format db '%d',0                                                      ;declararea formatului de citire
+    22 00000039 50656E747275207265-         afisare db 'Pentru relatia a + a/b, avem: %d + %d/%d = %d',0          ;declararea mesajului+formatului pentru afisare
+    22 00000042 6C617469612061202B-
+    22 0000004B 20612F622C20617665-
+    22 00000054 6D3A202564202B2025-
+    22 0000005D 642F2564203D202564-
+    22 00000066 00                 
+    23 00000067 4E756D6172756C2062-         eroare db 'Numarul b trebuie sa fie un numar natural diferit de 0!',0 ;declararea mesajului de eroare (b==0)
+    23 00000070 207472656275696520-
+    23 00000079 73612066696520756E-
+    23 00000082 206E756D6172206E61-
+    23 0000008B 747572616C20646966-
+    23 00000094 657269742064652030-
+    23 0000009D 2100               
+    24                                      
+    25                                  ;Se da un numar natural a (a: dword, definit in segmentul de date). Sa se citeasca un numar natural b si sa se ;calculeze: a + a/b. Sa se afiseze rezultatul operatiei. Valorile vor fi afisate in format decimal (baza
+    26                                  ; our code starts here
+    27                                  segment code use32 class=code
+    28                                      start:
+    29                                          ; ...
+    30                                          ;printarea numarului a, definit in program si a unui mesaj de citire
+    31 00000000 FF35[00000000]                  push dword [a]
+    32 00000006 68[0A000000]                    push dword mesajcitire
+    33 0000000B FF15[00000000]                  call [printf]
+    34 00000011 83C408                          add esp, 4*2
+    35                                          
+    36                                          ;citirea numarului b din consola
+    37 00000014 68[04000000]                    push dword b
+    38 00000019 68[36000000]                    push dword format
+    39 0000001E FF15[00000000]                  call [scanf]
+    40 00000024 83C408                          add esp, 4*2
+    41                                          
+    42                                          ;prelucrarea numerelor pentru a ajunge la rezultatul relatiei a+a/b
+    43 00000027 668B15[02000000]                mov dx, word [a+2]   ;pregatirea deimpartitului impartirii a/b
+    44 0000002E 66A1[00000000]                  mov ax, word [a]     ;-||-
+    45 00000034 668B0D[04000000]                mov cx, [b]          ;cx = [b]
+    46 0000003B 0FBFC9                          movsx ecx, cx        ;ecx = cx
+    47 0000003E E335                            jecxz impartire_la_0 
+    48 00000040 66F7F9                          idiv cx              ;ax=(ax:dx)/cx=a/b,  dx=(ax:dx)%cx=a%b
+    49 00000043 98                              cwde                 ;ax->eax
+    50 00000044 0305[00000000]                  add eax, [a]         ;eax=a/b+a
+    51                                          
+    52                                          ;pregatiri pentru afisare
+    53 0000004A A3[06000000]                    mov [result], eax    ;rezultatul final e trecut in variabila result
+    54 0000004F 0FBFC1                          movsx eax, cx        ;in eax se pune cx, adica valoarea lui b
+    55                                          
+    56                                          ;printarea rezultatului
+    57 00000052 FF35[06000000]                  push dword [result]
+    58 00000058 50                              push dword eax
+    59 00000059 FF35[00000000]                  push dword [a]
+    60 0000005F FF35[00000000]                  push dword [a]
+    61 00000065 68[39000000]                    push dword afisare
+    62 0000006A FF15[00000000]                  call [printf]
+    63 00000070 83C414                          add esp, 4*5
+    64 00000073 EB0E                            jmp final
+    65                                          
+    66                                          impartire_la_0:
+    67                                          ;daca numarul b (citit de la tastatura) este 0 atunci de printeaza mesaj de eroare
+    68 00000075 68[67000000]                    push eroare
+    69 0000007A FF15[00000000]                  call [printf]
+    70 00000080 83C404                          add esp, 4*1
+    71                                          
+    72                                          final:
+    73                                          ; exit(0)
+    74 00000083 6A00                            push    dword 0      ; push the parameter for exit onto the stack
+    75 00000085 FF15[00000000]                  call    [exit]       ; call exit to terminate the program

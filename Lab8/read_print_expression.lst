@@ -1,0 +1,159 @@
+     1                                  ;1. Read two numbers a, b in decimal. Read two numbers in hexadecimal (c and d).
+     2                                  ;Compute the following expression: 12 / a + (c*d + b*1010b) / 12h and print the result on screen in hexadecimal and decimal.
+     3                                  
+     4                                  bits 32 ; assembling for the 32 bits architecture
+     5                                  
+     6                                  ; declare the EntryPoint (a label defining the very first instruction of the program)
+     7                                  global start        
+     8                                  
+     9                                  ; declare external functions needed by our program
+    10                                  extern exit  , printf, scanf             ; tell nasm that exit exists even if we won't be defining it
+    11                                  import exit msvcrt.dll    ; exit is a function that ends the calling process. It is defined in msvcrt.dll
+    12                                                            ; msvcrt.dll contains exit, printf and all the other important C-runtime specific functions
+    13                                                            import printf msvcrt.dll
+    14                                                            import scanf msvcrt.dll
+    15                                  
+    16                                  ; our data is declared here (the variables needed by our program)
+    17                                  segment data use32 class=data
+    18                                  
+    19                                  
+    20 00000000 00000000                  a dd 0
+    21 00000004 00000000                  b dd 0
+    22 00000008 00000000                  c dd 0
+    23 0000000C 00000000                  d dd 0
+    24 00000010 256400                    formatdecimal db '%d', 0
+    25 00000013 257800                    formathexadecimal db '%x',0
+    26 00000016 726573756C74203D20-       printresult db 'result = %x in hexadecimal and %d in decimal', 0  ; de la drpata la st pe stiva: valoarea rez pentru %d si apoi valoarea rez petru %x
+    26 0000001F 257820696E20686578-
+    26 00000028 61646563696D616C20-
+    26 00000031 616E6420256420696E-
+    26 0000003A 20646563696D616C00 
+    27 00000043 496E74726F64756365-       printmesajinceputa db 'Introduceti valoarea pentru a in decimal =', 0
+    27 0000004C 74692076616C6F6172-
+    27 00000055 65612070656E747275-
+    27 0000005E 206120696E20646563-
+    27 00000067 696D616C203D00     
+    28 0000006E 496E74726F64756365-         printmesajinceputb db 'Introduceti valoarea pentru b in decimal =', 0
+    28 00000077 74692076616C6F6172-
+    28 00000080 65612070656E747275-
+    28 00000089 206220696E20646563-
+    28 00000092 696D616C203D00     
+    29 00000099 496E74726F64756365-           printmesajinceputc db 'Introduceti valoarea pentru c in hexadecimal =', 0
+    29 000000A2 74692076616C6F6172-
+    29 000000AB 65612070656E747275-
+    29 000000B4 206320696E20686578-
+    29 000000BD 61646563696D616C20-
+    29 000000C6 3D00               
+    30 000000C8 496E74726F64756365-             printmesajinceputd db 'Introduceti valoarea pentru d in hexadecimal =', 0
+    30 000000D1 74692076616C6F6172-
+    30 000000DA 65612070656E747275-
+    30 000000E3 206420696E20686578-
+    30 000000EC 61646563696D616C20-
+    30 000000F5 3D00               
+    31                                  ; our code starts here
+    32                                  segment code use32 class=code
+    33                                      start:
+    34                                          ; ...
+    35                                          
+    36                                          ;afisare mesaj inceput a
+    37                                          
+    38 00000000 68[43000000]                    push dword printmesajinceputa
+    39 00000005 FF15[00000000]                  call [printf]
+    40 0000000B 83C404                          add esp, 4*1 
+    41                                          ; citire a
+    42                                          
+    43 0000000E 68[00000000]                     push dword a
+    44 00000013 68[10000000]                     push dword formatdecimal
+    45 00000018 FF15[00000000]                   call [scanf]
+    46 0000001E 83C408                           add esp, 4*2
+    47                                           
+    48                                            ;afisare mesaj inceput b
+    49                                          
+    50 00000021 68[6E000000]                    push dword printmesajinceputb
+    51 00000026 FF15[00000000]                  call [printf]
+    52 0000002C 83C404                          add esp, 4*1
+    53                                          ; citire b
+    54                                          
+    55 0000002F 68[04000000]                     push dword b
+    56 00000034 68[10000000]                     push dword formatdecimal
+    57 00000039 FF15[00000000]                   call [scanf]
+    58 0000003F 83C408                           add esp, 4*2
+    59                                           
+    60                                           
+    61                                            ;afisare mesaj inceput c
+    62                                          
+    63 00000042 68[99000000]                    push dword printmesajinceputc
+    64 00000047 FF15[00000000]                  call [printf]
+    65 0000004D 83C404                          add esp, 4*1
+    66                                          
+    67                                          ; citire c
+    68                                          
+    69 00000050 68[08000000]                     push dword c
+    70 00000055 68[13000000]                     push dword formathexadecimal
+    71 0000005A FF15[00000000]                   call [scanf]
+    72 00000060 83C408                           add esp, 4*2
+    73                                           
+    74                                            ;afisare mesaj inceput d
+    75                                          
+    76 00000063 68[C8000000]                    push dword printmesajinceputd
+    77 00000068 FF15[00000000]                  call [printf]
+    78 0000006E 83C404                          add esp, 4*1
+    79                                          ; citire d
+    80                                          
+    81 00000071 68[0C000000]                     push dword d
+    82 00000076 68[13000000]                     push dword formathexadecimal
+    83 0000007B FF15[00000000]                   call [scanf]
+    84 00000081 83C408                           add esp, 4*2
+    85                                           
+    86                                           ; calcul expresie 12 / a + (c*d + b*1010b) / 12h
+    87                                           ; (c*d + b*1010b) 
+    88 00000084 A1[08000000]                     mov eax, [c]
+    89 00000089 F72D[0C000000]                   imul dword [d]   ; edx:eax = c*d
+    90                                           
+    91                                           ; copie pt edx:eax in ecx:ebx
+    92                                           
+    93 0000008F 89C3                             mov ebx, eax
+    94 00000091 89D1                             mov ecx, edx
+    95                                              ;  b*1010b
+    96                                              
+    97 00000093 B80A000000                       mov eax, 1010b
+    98 00000098 F72D[04000000]                   imul dword [b] ; edx:eax = 1010b*b
+    99                                           
+   100                                           ;c*d + b*1010b
+   101                                           ; ecx:ebx + 
+   102                                           ; edx:eax
+   103 0000009E F8                               clc
+   104 0000009F 01D8                             add eax, ebx
+   105 000000A1 11CA                             adc edx, ecx  ; edx:eax = c*d + b*1010b
+   106                                           
+   107                                           ;(c*d + b*1010b ) / 12h
+   108 000000A3 BB12000000                       mov ebx, 12h
+   109                                           ; edx:eax = c*d + b*1010b
+   110 000000A8 F7FB                             idiv ebx   ; edx:eax/ ebx   = eax - catul imp si in edx restul imp, deci eax = (c*d + b*1010b) / 12h
+   111                                           
+   112                                           ; salvare eax in ebx
+   113 000000AA 89C3                             mov ebx, eax; ebx = (c*d + b*1010b) / 12h
+   114                                           
+   115                                            ;12 / a
+   116 000000AC B80C000000                        mov eax, 12
+   117 000000B1 99                                CDQ  ; eax -> edx:eax
+   118 000000B2 F73D[00000000]                    idiv dword [a]  ; eax - catul imp 12 / a si in edx restul
+   119                                            
+   120                                  ;     2 / a + (c*d + b*1010b) / 12h
+   121 000000B8 01D8                            add eax, ebx ; eax = resultatul expresiei = 2 / a + (c*d + b*1010b) / 12h
+   122                                          
+   123                                          ; afisare rezultat
+   124                                          
+   125                                          ; printresult db 'result = %x in hexadecimal and %d in decimal', 0
+   126                                          
+   127 000000BA 50                              push eax  ; va inlocui %d
+   128 000000BB 50                              push eax   ; va inlocui %x
+   129 000000BC 68[16000000]                    push dword printresult
+   130 000000C1 FF15[00000000]                  call [printf]
+   131 000000C7 83C40C                          add esp, 4*3
+   132                                            
+   133                                            
+   134                                      
+   135                                          ; exit(0)
+   136 000000CA 6A00                            push    dword 0      ; push the parameter for exit onto the stack
+   137 000000CC FF15[00000000]                  call    [exit]       ; call exit to terminate the program
